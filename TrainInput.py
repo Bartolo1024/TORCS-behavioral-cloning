@@ -55,6 +55,7 @@ class TrainInput(object):
 
         print(str(self.dataset_index) + 'th dataset loaded')
         if self.dataset_index == self.max_train_dataset_index:
+            self.dataset_index = 0
             print('Last dataset loaded')
 
     def load_next_test_dataset(self):
@@ -66,6 +67,10 @@ class TrainInput(object):
 
         self.test_data_counter = 0
         self.test_dataset_index += 1
+
+        if self.test_dataset_index == self.max_test_dataset_index:
+            self.test_dataset_index = 0
+            print('Last test dataset loaded')
 
     def close(self):
         self.file.close()

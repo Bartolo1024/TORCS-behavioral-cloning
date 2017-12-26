@@ -6,10 +6,11 @@ BATCH = 5000
 DISPLAY_STEP = 1
 
 #neural network parameters
-number_of_features_hidden_a = 37#
-number_of_features_hidden_b = 25#
-number_of_features_hidden_c = 23#
-number_of_features_hidden_d = 15#
+number_of_features_hidden_a = 35#
+number_of_features_hidden_b = 40#
+number_of_features_hidden_c = 40#
+number_of_features_hidden_d = 27#
+number_of_features_hidden_e = 35#
 
 number_of_sensors = 27#
 number_of_efectors = 3#
@@ -18,33 +19,52 @@ x = tf.placeholder(tf.float32, [None, number_of_sensors], name='state')
 y_ = tf.placeholder(tf.float32, [None, number_of_efectors], name='action')
 
 #
-W1 = tf.Variable(tf.truncated_normal([number_of_sensors, number_of_features_hidden_a], stddev=0.1))
-W2 = tf.Variable(tf.truncated_normal([number_of_features_hidden_a, number_of_features_hidden_b], stddev=0.1))
-W3 = tf.Variable(tf.truncated_normal([number_of_features_hidden_b, number_of_features_hidden_c], stddev=0.1))
-W4 = tf.Variable(tf.truncated_normal([number_of_features_hidden_c, number_of_features_hidden_d], stddev=0.1))
-W5 = tf.Variable(tf.truncated_normal([number_of_features_hidden_d, number_of_efectors], stddev=0.1))
+W1 = tf.Variable(tf.truncated_normal([number_of_sensors, number_of_features_hidden_a], stddev=0.1), name="W1")
+W2 = tf.Variable(tf.truncated_normal([number_of_features_hidden_a, number_of_features_hidden_b], stddev=0.1), name="W2")
+W3 = tf.Variable(tf.truncated_normal([number_of_features_hidden_b, number_of_features_hidden_c], stddev=0.1), name="W3")
+W4 = tf.Variable(tf.truncated_normal([number_of_features_hidden_c, number_of_features_hidden_d], stddev=0.1), name="W4")
+W5 = tf.Variable(tf.truncated_normal([number_of_features_hidden_d, number_of_features_hidden_e], stddev=0.1), name="W5")
+W6 = tf.Variable(tf.truncated_normal([number_of_features_hidden_e, number_of_efectors], stddev=0.1), name="W6")
 #
-b1 = tf.Variable(tf.zeros(number_of_features_hidden_a))
-b2 = tf.Variable(tf.zeros(number_of_features_hidden_b))
-b3 = tf.Variable(tf.zeros(number_of_features_hidden_c))
-b4 = tf.Variable(tf.zeros(number_of_features_hidden_d))
-b5 = tf.Variable(tf.zeros(number_of_efectors))
+b1 = tf.Variable(tf.zeros(number_of_features_hidden_a), name="b1")
+b2 = tf.Variable(tf.zeros(number_of_features_hidden_b), name="b2")
+b3 = tf.Variable(tf.zeros(number_of_features_hidden_c), name="b3")
+b4 = tf.Variable(tf.zeros(number_of_features_hidden_d), name="b4")
+b5 = tf.Variable(tf.zeros(number_of_features_hidden_e), name="b5")
+b6 = tf.Variable(tf.zeros(number_of_efectors), name="b6")
 
 # visualization
 allweights = tf.reshape(W1, [-1])
 allbiases = tf.reshape(b1, [-1])
 
 #model
-input_layer = tf.nn.tanh(tf.add(tf.matmul(x, W1), b1))
+
+#normalization
+speedX, speedY, speedZ, rpm, wheelSpinVel, track = tf.split(x, [1, 1, 1, 1, 4, 19], 1)
+normalized_speed_x = tf.divide(speedX, 500)
+normalized_speed_y = tf.divide(speedY, 500)
+normalized_speed_z = tf.divide(speedZ, 500)
+rpm_normalized = tf.divide(rpm, 10000)
+wheel_spin_velocity_normalized = tf.divide(wheelSpinVel, 1000)
+track_normalized = track
+normalized_input = tf.concat([normalized_speed_x, normalized_speed_y, normalized_speed_z, rpm_normalized, wheel_spin_velocity_normalized, track], 1)
+input_layer = tf.nn.tanh(tf.add(tf.matmul(normalized_input, W1), b1))
+
 hidden_layer_a = tf.nn.relu(tf.add(tf.matmul(input_layer, W2), b2))
 hidden_layer_b = tf.nn.relu(tf.add(tf.matmul(hidden_layer_a, W3), b3))
 hidden_layer_c = tf.nn.relu(tf.add(tf.matmul(hidden_layer_b, W4), b4))
-#y = tf.matmul(tf.nn.tanh(tf.add(tf.matmul(hidden_layer_c, W5), b5)), tf.constant([1.0, 1.0, 1.0, 6.0], shape=(4, 100)))
-y = tf.nn.tanh(tf.add(tf.matmul(hidden_layer_c, W5), b5))
+hidden_layer_d = tf.nn.relu(tf.add(tf.matmul(hidden_layer_c, W5), b5))
 
-cross_entropy = tf.reduce_mean(tf.pow(tf.subtract(y_, y), 2))
+unnormalized_output = tf.add(tf.matmul(hidden_layer_d, W6), b6)
+steering, acceleration, brake = tf.split(unnormalized_output, [1, 1, 1], 1)
+steering_normalized = tf.tanh(steering)             #steering values e(-1, 1)
+acceleration_normalized = tf.sigmoid(acceleration)  #acceleration values e(0, 1)
+brake_normalized = tf.sigmoid(brake)                #acceleration values e(0, 1)
 
-train_step = tf.train.AdamOptimizer(0.005).minimize(cross_entropy)
+y = tf.concat([steering_normalized, acceleration_normalized, brake_normalized], 1)
+cross_entropy = tf.reduce_mean(tf.reduce_sum(tf.pow(tf.subtract(y_, y), 2)))
+
+train_step = tf.train.AdamOptimizer(0.001).minimize(cross_entropy)
 
 init = tf.global_variables_initializer()
 
@@ -55,7 +75,6 @@ saver = tf.train.Saver()
 
 train_input = ti.TrainInput()
 number_of_iterations = int(train_input.get_train_data_count() / BATCH)
-print(number_of_iterations)
 with tf.Session() as sess:
     sess.run(init)
 
@@ -63,7 +82,7 @@ with tf.Session() as sess:
         batch_x, batch_y = train_input.get_next_batch(batch=BATCH)
 
         if(i % DISPLAY_STEP == 0):
-            acc_trn = sess.run([cross_entropy], feed_dict={x: batch_x, y_: batch_y})
+            acc_trn, output = sess.run([cross_entropy, y], feed_dict={x: batch_x, y_: batch_y})
 
             test_x, test_y = train_input.get_next_test_data(batch=BATCH)
             acc_tst = sess.run([cross_entropy], feed_dict={x: test_x, y_: test_y})
@@ -72,6 +91,9 @@ with tf.Session() as sess:
             train_accurency.append(acc_trn)
             test_accurency.append(acc_tst)
 
+            print(output[0])
+            print(batch_y[0])
+
         sess.run(train_step, feed_dict={x: batch_x, y_: batch_y})
 
     f, (ax1, ax2) = plt.subplots(2, 1, sharex='col', sharey='row')
@@ -79,10 +101,14 @@ with tf.Session() as sess:
     ax1.plot(train_accurency)
     ax2.plot(test_accurency)
 
-    ax1.set_title("train accurency")
-    ax2.set_title("test accurency")
+    ax1.set_title("train loss")
+    ax2.set_title("test loss")
 
     plt.show()
+
+    #save model
+    save_path = saver.save(sess, "/home/bartolo/Projects/Torcs/TrainedNeuralNetwork/model.ckpt")
+    print("model saved in file: %s" % save_path)
 
     sess.close()
     train_input.close()
