@@ -1,119 +1,91 @@
+import random
+import Variables
 import tensorflow as tf
 import TrainInput as ti
-import matplotlib.pyplot as plt
+import LossFunctions as lf
+import Normalization
+import Model
 
-BATCH = 2500
-DISPLAY_STEP = 1
+MIN_BATCH = 100
+MAX_BATCH = 10000
+DISPLAY_STEP = 10
+tensorboard_dirpath = "/home/bartolo/Projects/Torcs/TrainedNeuralNetwork/summary/"
 
-# neural network parameters
-number_of_features_hidden_a = 27  #
-number_of_features_hidden_b = 20  #
-number_of_features_hidden_c = 15  #
-number_of_features_hidden_d = 10  #
-number_of_features_hidden_e = 10  #
-
-number_of_sensors = 27  #
+number_of_sensors = 29  #
 number_of_efectors = 3  #
 
 x = tf.placeholder(tf.float32, [None, number_of_sensors], name='state')
 y_ = tf.placeholder(tf.float32, [None, number_of_efectors], name='action')
 target_steering, target_acceleration, target_brake = tf.split(y_, [1, 1, 1], 1)
 
-#
-W1 = tf.Variable(tf.truncated_normal([number_of_sensors, number_of_features_hidden_a], stddev=0.1), name="W1")
-W2 = tf.Variable(tf.truncated_normal([number_of_features_hidden_a, number_of_features_hidden_b], stddev=0.1), name="W2")
-W3 = tf.Variable(tf.truncated_normal([number_of_features_hidden_b, number_of_features_hidden_c], stddev=0.1), name="W3")
-W4 = tf.Variable(tf.truncated_normal([number_of_features_hidden_c, number_of_features_hidden_d], stddev=0.1), name="W4")
-W5 = tf.Variable(tf.truncated_normal([number_of_features_hidden_d, number_of_features_hidden_e], stddev=0.1), name="W5")
-W6 = tf.Variable(tf.truncated_normal([number_of_features_hidden_e, number_of_efectors], stddev=0.1), name="W6")
-#
-b1 = tf.Variable(tf.zeros(number_of_features_hidden_a), name="b1")
-b2 = tf.Variable(tf.zeros(number_of_features_hidden_b), name="b2")
-b3 = tf.Variable(tf.zeros(number_of_features_hidden_c), name="b3")
-b4 = tf.Variable(tf.zeros(number_of_features_hidden_d), name="b4")
-b5 = tf.Variable(tf.zeros(number_of_features_hidden_e), name="b5")
-b6 = tf.Variable(tf.zeros(number_of_efectors), name="b6")
+def run(BATCH = 100, LAMBDA = 0.9, learning_rate = 0.005):
+    W1, W2, W3, W4, W5, W6 = Variables.GetRandomWeights(number_of_sensors, number_of_efectors)
+    b1, b2, b3, b4, b5, b6 = Variables.GetNullBiases(number_of_sensors, number_of_efectors)
 
-# visualization
-allweights = tf.reshape(W1, [-1])
-allbiases = tf.reshape(b1, [-1])
+    # model and normalization
+    normalized_input = Normalization.normalize_input(x)
+    unnormalized_output = Model.model(normalized_input, W1, W2, W3, W4, W5, W6, b1, b2, b3, b4, b5, b6)
+    steering_normalized, acceleration_normalized, brake_normalized, y = Normalization.normalize_output(unnormalized_output)
 
-# model
+    with tf.name_scope("loss"):
+        #loss = lf.pow_loss_function(target_steering, steering_normalized, target_brake, brake_normalized, target_acceleration, acceleration_normalized, 0.05, 12)
+        loss = lf.log_loss_function(target_steering, steering_normalized, target_brake, brake_normalized, target_acceleration, acceleration_normalized, lambda_param)
 
-# normalization
-speedX, speedY, speedZ, rpm, wheelSpinVel, track = tf.split(x, [1, 1, 1, 1, 4, 19], 1)
-normalized_speed_x = tf.divide(speedX, 500)
-normalized_speed_y = tf.divide(speedY, 500)
-normalized_speed_z = tf.divide(speedZ, 500)
-rpm_normalized = tf.divide(rpm, 100)
-wheel_spin_velocity_normalized = tf.divide(wheelSpinVel, 1000)
-track_normalized = track
-normalized_input = tf.concat(
-    [normalized_speed_x, normalized_speed_y, normalized_speed_z, rpm_normalized, wheel_spin_velocity_normalized, track],
-    1)
-input_layer = tf.add(tf.matmul(normalized_input, W1), b1)
+    tf.summary.scalar("lr" +str(learning_rate), loss)
 
-hidden_layer_a = tf.nn.relu(tf.add(tf.matmul(input_layer, W2), b2))
-hidden_layer_b = tf.nn.relu(tf.add(tf.matmul(hidden_layer_a, W3), b3))
-hidden_layer_c = tf.nn.relu(tf.add(tf.matmul(hidden_layer_b, W4), b4))
-hidden_layer_d = tf.nn.relu(tf.add(tf.matmul(hidden_layer_c, W5), b5))
+    train_step = tf.train.AdamOptimizer(learning_rate).minimize(loss)
 
-unnormalized_output = tf.add(tf.matmul(hidden_layer_d, W6), b6)
-steering, acceleration, brake = tf.split(unnormalized_output, [1, 1, 1], 1)
-steering_normalized = tf.tanh(steering)  # steering values e(-1, 1)
-acceleration_normalized = tf.sigmoid(acceleration)  # acceleration values e(0, 1)
-brake_normalized = tf.sigmoid(brake)  # acceleration values e(0, 1)
+    init = tf.global_variables_initializer()
 
-y = tf.concat([steering_normalized, acceleration_normalized, brake_normalized], 1)
-print(tf.shape(y))
-cross_entropy = tf.reduce_sum(tf.add(tf.add(tf.pow(tf.multiply(tf.subtract(steering_normalized, target_steering), 10), 4),
-                                                    tf.multiply(tf.abs(tf.subtract(acceleration_normalized, target_acceleration)), 1)),
-                                                    tf.multiply(tf.abs(tf.subtract(brake_normalized, target_brake)), 1)))
+    merged = tf.summary.merge_all()
 
-train_step = tf.train.AdamOptimizer(0.005).minimize(cross_entropy)
+    if tf.gfile.Exists(tensorboard_dirpath):
+       tf.gfile.DeleteRecursively(tensorboard_dirpath)
 
-init = tf.global_variables_initializer()
+    train_input = ti.TrainInput()
+    number_of_iterations = int(train_input.get_train_data_count() / batch)
 
-train_accurency = list()
-test_accurency = list()
+    with tf.Session() as sess:
 
-train_input = ti.TrainInput()
-number_of_iterations = int(train_input.get_train_data_count() / BATCH) * 15
-with tf.Session() as sess:
-    sess.run(init)
+        sess.run(init)
 
-    for i in range(number_of_iterations):
-        batch_x, batch_y = train_input.get_next_batch(batch=BATCH)
+        writter = tf.summary.FileWriter(tensorboard_dirpath + "train", sess.graph)
+        test_writter = tf.summary.FileWriter(tensorboard_dirpath + "test")
 
-        if (i % DISPLAY_STEP == 0):
-            acc_trn, output = sess.run([cross_entropy, y], feed_dict={x: batch_x, y_: batch_y})
+        for i in range(number_of_iterations):
+            batch_x, batch_y = train_input.get_next_batch(batch=batch)
+            _, traning_loss, summary = sess.run([train_step, loss, merged], feed_dict={x: batch_x, y_: batch_y})
 
-            test_x, test_y = train_input.get_next_test_data(batch=BATCH)
-            acc_tst = sess.run([cross_entropy], feed_dict={x: test_x, y_: test_y})
+            writter.add_summary(summary, global_step=i)
 
-            print("#{} Trn acc={} , Tst acc={} ".format(i, acc_trn, acc_tst))
-            train_accurency.append(acc_trn)
-            test_accurency.append(acc_tst)
+            test_x, test_y = train_input.get_next_test_data(batch=batch)
+            test_loss, summary = sess.run([loss, merged], feed_dict={x: test_x, y_: test_y})
 
-            print(output[0])
-            print(batch_y[0])
+            test_writter.add_summary(summary, global_step=i)
 
-        sess.run(train_step, feed_dict={x: batch_x, y_: batch_y})
+            if (i % DISPLAY_STEP == 0):
+                print("#{} Trn loss={} , Tst loss={} ".format(i, traning_loss, test_loss))
 
-    f, (ax1, ax2) = plt.subplots(2, 1, sharex='col', sharey='row')
+        # save model
+        saver = tf.train.Saver()
+        save_path = saver.save(sess, "/home/bartolo/Projects/Torcs/TrainedNeuralNetwork/model.ckpt")
+        print("model saved in file: %s" % save_path)
 
-    ax1.plot(train_accurency)
-    ax2.plot(test_accurency)
+        writter.close()
+        test_writter.close()
 
-    ax1.set_title("train loss")
-    ax2.set_title("test loss")
+        sess.close()
+        train_input.close()
 
-    plt.show()
+for i in range(0, 10):
+    lr_sub = random.random() * 4
+    learning_rate = pow(0.1, (3 + lr_sub))
+    for j in range(0, 10):
+        batch = random.randrange(MIN_BATCH, MAX_BATCH, 10)
+        for k in range(0, 10):
+            lambda_param = random.random()
+            print("batch: " + str(batch) + "learning rate: " + str(learning_rate) + "lambda_param:" + str(lambda_param))
+            run(batch, lambda_param, learning_rate)
 
-    # save model
-    saver = tf.train.Saver()
-    save_path = saver.save(sess, "/home/bartolo/Projects/Torcs/TrainedNeuralNetwork/model.ckpt")
-    print("model saved in file: %s" % save_path)
 
-    sess.close()
-    train_input.close()
+

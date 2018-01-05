@@ -2,7 +2,7 @@ import h5py as h5
 import numpy as np
 
 class TrainInput(object):
-    def __init__(self, filename = 'alldata.h5', DISPLAY_STEP = 100):
+    def __init__(self, filename = 'alldata.h5', DISPLAY_STEP = 100, number_of_sensors = 29):
         self.file = h5.File(filename, 'r')
         self.DISPLAY_STEP = DISPLAY_STEP
 
@@ -14,8 +14,10 @@ class TrainInput(object):
         self.train_data_index = 0
         self.test_data_index = int(self.data.shape[0]/2)
 
+        self.number_of_sensors = number_of_sensors
+
     def get_next_batch(self, batch = 100):
-        state = self.data[self.train_data_index: self.train_data_index + batch, 3: 30]
+        state = self.data[self.train_data_index: self.train_data_index + batch, 3: 32]
         action = self.data[self.train_data_index: self.train_data_index + batch, 0: 3]
 
         self.train_data_index += batch
@@ -26,7 +28,7 @@ class TrainInput(object):
         return state, action
 
     def get_next_test_data(self, batch = 100):
-        state = self.data[self.test_data_index: self.test_data_index + batch - 1, 3: 30]
+        state = self.data[self.test_data_index: self.test_data_index + batch - 1, 3: 32]
         action = self.data[self.test_data_index: self.test_data_index + batch - 1, 0: 3]
 
         self.test_data_index += batch
