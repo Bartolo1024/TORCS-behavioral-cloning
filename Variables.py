@@ -6,8 +6,8 @@ def initialize_parmeters(number_of_sensors, number_of_efectors, layer_shapes):
 
     parameters["W1"] = tf.get_variable("W1", [number_of_sensors, layer_shapes[0]], initializer = tf.contrib.layers.xavier_initializer())
     parameters["b1"] = tf.get_variable("b1", [1, layer_shapes[0]], initializer = tf.zeros_initializer())
-    tf.summary.histogram("W1", parameters["W1"])
-    tf.summary.histogram("b1", parameters["b1"])
+    #tf.summary.histogram("W1", parameters["W1"])
+    #tf.summary.histogram("b1", parameters["b1"])
 
     for index, value in enumerate(layer_shapes[1:]):
         layer_shape_index = index + 1

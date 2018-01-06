@@ -58,7 +58,7 @@ def exp_log_loss_function(target_steering, steering_normalized, target_brake, br
 
     steering_loss = tf.add(
                     tf.exp(tf.multiply(steering_diff, (1 / (1 - lambda_parm)))),
-                    tf.maximum(tf.log(tf.multiply(steering_diff, 1)), 0.0005)
+                    tf.log(tf.maximum(steering_diff, 0.0005))
                 )
     acceleration_loss = tf.exp(tf.multiply(acceleration_diff, 1 / lambda_parm))
     brake_loss = tf.exp(tf.multiply(brake_diff, 1 / lambda_parm))
