@@ -1,30 +1,20 @@
 import tensorflow as tf
 
-number_of_features_hidden_a = 27  #
-number_of_features_hidden_b = 20  #
-number_of_features_hidden_c = 15  #
-number_of_features_hidden_d = 10  #
-number_of_features_hidden_e = 10  #
+def initialize_parmeters(number_of_sensors, number_of_efectors, layer_shapes):
 
-def GetRandomWeights(number_of_sensors, number_of_efectors):
-    W1 = tf.Variable(tf.truncated_normal([number_of_sensors, number_of_features_hidden_a], stddev=0.1), name="W1")
-    W2 = tf.Variable(tf.truncated_normal([number_of_features_hidden_a, number_of_features_hidden_b], stddev=0.1),
-                     name="W2")
-    W3 = tf.Variable(tf.truncated_normal([number_of_features_hidden_b, number_of_features_hidden_c], stddev=0.1),
-                     name="W3")
-    W4 = tf.Variable(tf.truncated_normal([number_of_features_hidden_c, number_of_features_hidden_d], stddev=0.1),
-                     name="W4")
-    W5 = tf.Variable(tf.truncated_normal([number_of_features_hidden_d, number_of_features_hidden_e], stddev=0.1),
-                     name="W5")
-    W6 = tf.Variable(tf.truncated_normal([number_of_features_hidden_e, number_of_efectors], stddev=0.1), name="W6")
-    return W1, W2, W3, W4, W5, W6
+    parameters = {}
 
+    parameters["W1"] = tf.get_variable("W1", [number_of_sensors, layer_shapes[0]], initializer = tf.contrib.layers.xavier_initializer())
+    parameters["b1"] = tf.get_variable("b1", [1, layer_shapes[0]], initializer = tf.zeros_initializer())
+    tf.summary.histogram("W1", parameters["W1"])
+    tf.summary.histogram("b1", parameters["b1"])
 
-def GetNullBiases(number_of_sensors, number_of_efectors):
-    b1 = tf.Variable(tf.zeros(number_of_features_hidden_a), name="b1")
-    b2 = tf.Variable(tf.zeros(number_of_features_hidden_b), name="b2")
-    b3 = tf.Variable(tf.zeros(number_of_features_hidden_c), name="b3")
-    b4 = tf.Variable(tf.zeros(number_of_features_hidden_d), name="b4")
-    b5 = tf.Variable(tf.zeros(number_of_features_hidden_e), name="b5")
-    b6 = tf.Variable(tf.zeros(number_of_efectors), name="b6")
-    return b1, b2, b3, b4, b5, b6
+    for index, value in enumerate(layer_shapes[1:]):
+        layer_shape_index = index + 1
+        layer_parm_index = str(index + 2)
+        parameters["W" + layer_parm_index] = tf.get_variable("W" + layer_parm_index, [layer_shapes[layer_shape_index - 1], layer_shapes[layer_shape_index]], initializer = tf.contrib.layers.xavier_initializer())
+        parameters["b" + layer_parm_index] = tf.get_variable("b" + layer_parm_index, [1, layer_shapes[layer_shape_index]], initializer = tf.zeros_initializer())
+        #tf.summary.histogram("W" + layer_parm_index, parameters["W" + layer_parm_index])
+        #tf.summary.histogram("b" + layer_parm_index, parameters["b" + layer_parm_index])
+
+    return parameters

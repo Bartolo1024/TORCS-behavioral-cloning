@@ -1,16 +1,22 @@
 import tensorflow as tf
+import Variables
 
-def model(normalized_input, W1, W2, W3, W4, W5, W6, b1, b2, b3, b4, b5, b6):
-    with tf.name_scope("layer_input"):
-        input_layer = tf.add(tf.matmul(normalized_input, W1), b1)
-    with tf.name_scope("layer_h1"):
-        hidden_layer_a = tf.nn.relu(tf.add(tf.matmul(input_layer, W2), b2))
-    with tf.name_scope("layer_h2"):
-        hidden_layer_b = tf.nn.relu(tf.add(tf.matmul(hidden_layer_a, W3), b3))
-    with tf.name_scope("layer_h3"):
-        hidden_layer_c = tf.nn.relu(tf.add(tf.matmul(hidden_layer_b, W4), b4))
-    with tf.name_scope("layer_h4"):
-        hidden_layer_d = tf.nn.relu(tf.add(tf.matmul(hidden_layer_c, W5), b5))
-    with tf.name_scope("output"):
-        unnormalized_output = tf.add(tf.matmul(hidden_layer_d, W6), b6)
-    return unnormalized_output
+def mlp_model(normalized_input, number_of_sensors, number_of_efectors, layers_shapes):
+
+    parmeters = Variables.initialize_parmeters(number_of_sensors, number_of_efectors, layers_shapes)
+
+    output = normalized_input
+
+    for index in range(1, int(len(parmeters)/2) + 1):
+        with tf.name_scope("layer" + str(index)):
+            next = tf.add(tf.matmul(output, parmeters["W" + str(index)]), parmeters["b" + str(index)])
+
+            output = tf.nn.tanh(next, name="tanh" + str(index))
+
+    return output
+
+
+
+
+
+

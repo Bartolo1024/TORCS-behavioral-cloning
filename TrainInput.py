@@ -2,7 +2,7 @@ import h5py as h5
 import numpy as np
 
 class TrainInput(object):
-    def __init__(self, filename = 'alldata.h5', DISPLAY_STEP = 100, number_of_sensors = 29):
+    def __init__(self, filename = 'train_data/alldata.h5', DISPLAY_STEP = 100, number_of_sensors = 29):
         self.file = h5.File(filename, 'r')
         self.DISPLAY_STEP = DISPLAY_STEP
 
