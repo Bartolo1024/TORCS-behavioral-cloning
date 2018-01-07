@@ -41,6 +41,31 @@ class TrainInput(object):
     def get_train_data_count(self):
         return self.max_train_index + 1
 
+    def get_chain_train_data(self, batch_size, number_of_sensors, number_of_efectors):
+        # return ordered chain of states and actions
+
+        x = self.data[:, 3: 32]
+        y = self.data[:, 0: 3]
+
+        state_train = np.reshape(x, (batch_size, number_of_sensors, -1))
+        action_train = np.reshape(y, (batch_size, number_of_efectors, -1))
+
+        return state_train, action_train
+
+    # def get_chain_test_data(self, batch_size, number_of_sensors, number_of_efectors):
+    #     # return chain of states
+    #
+    #     x = self.data[self.test_data_index: self.data.shape[0], 3: 32]
+    #     y = self.data[self.test_data_index: self.data.shape[0], 0: 3]
+    #
+    #     state_test = np.reshape(x, (batch_size, number_of_sensors, -1))
+    #     action_test = np.reshape(y, (batch_size, number_of_efectors, -1))
+    #
+    #     return state_test, action_test
+
+    def max_epochs_index(self, epoch_size):
+        return int(self.data.shape[0]/epoch_size)
+
     def close(self):
         self.file.close()
 

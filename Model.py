@@ -15,6 +15,8 @@ def mlp_model(normalized_input, number_of_sensors, number_of_efectors, layers_sh
 
     return output
 
+def rnn_model():
+    print("todo")
 
 
 
