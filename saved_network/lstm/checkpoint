@@ -1,0 +1,2 @@
+model_checkpoint_path: "/home/bartolo/Projects/Torcs/TorcsPolicyTrain/saved_network/lstm/model.ckpt"
+all_model_checkpoint_paths: "/home/bartolo/Projects/Torcs/TorcsPolicyTrain/saved_network/lstm/model.ckpt"

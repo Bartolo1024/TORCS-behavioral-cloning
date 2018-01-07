@@ -2,19 +2,30 @@ import h5py as h5
 import numpy as np
 
 class TrainInput(object):
-    def __init__(self, filename = 'train_data/alldata.h5', DISPLAY_STEP = 100, number_of_sensors = 29):
+    def __init__(self, filename = 'train_data/alldata.h5',
+                 DISPLAY_STEP = 100,
+                 number_of_sensors = 29,
+                 shuffle_data = True,
+                 single_race_data_size = 10000):
+
         self.file = h5.File(filename, 'r')
         self.DISPLAY_STEP = DISPLAY_STEP
 
         self.data = np.array(self.file.get('sa'))
         self.data = np.delete(self.data, 2, 1)
-        np.random.shuffle(self.data)
+
+        if shuffle_data == True:
+            np.random.shuffle(self.data)
+
         self.max_train_index = int(self.data.shape[0]/2) - 1
 
         self.train_data_index = 0
         self.test_data_index = int(self.data.shape[0]/2)
 
         self.number_of_sensors = number_of_sensors
+        self.single_race_data_size = single_race_data_size
+
+        print(self.data.shape)
 
     def get_next_batch(self, batch = 100):
         state = self.data[self.train_data_index: self.train_data_index + batch, 3: 32]
@@ -41,11 +52,11 @@ class TrainInput(object):
     def get_train_data_count(self):
         return self.max_train_index + 1
 
-    def get_chain_train_data(self, batch_size, number_of_sensors, number_of_efectors):
+    def get_chain_train_data(self, batch_size, number_of_sensors, number_of_efectors, epoch):
         # return ordered chain of states and actions
 
-        x = self.data[:, 3: 32]
-        y = self.data[:, 0: 3]
+        x = self.data[epoch * self.single_race_data_size: epoch * self.single_race_data_size + self.single_race_data_size, 3: 32]
+        y = self.data[epoch * self.single_race_data_size: epoch * self.single_race_data_size + self.single_race_data_size, 0: 3]
 
         state_train = np.reshape(x, (batch_size, number_of_sensors, -1))
         action_train = np.reshape(y, (batch_size, number_of_efectors, -1))
@@ -63,8 +74,11 @@ class TrainInput(object):
     #
     #     return state_test, action_test
 
-    def max_epochs_index(self, epoch_size):
-        return int(self.data.shape[0]/epoch_size)
+    def max_epochs_index(self):
+        return int(self.data.shape[0] / self.single_race_data_size)
+
+    def get_batches_count(self, batch_size, backpropagation_lenght):
+        return int(self.single_race_data_size / batch_size)
 
     def close(self):
         self.file.close()

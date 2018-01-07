@@ -1,6 +1,7 @@
 from gym_torcs import TorcsEnv
 from human_agent import HumanAgent
-from neural_agent import NeuralAgent
+from mlp_agent import NeuralAgent as mlpAgent
+from lstm_agent import NeuralAgent as lstmAgent
 import numpy as np
 
 episode_count = 1
@@ -16,7 +17,8 @@ env = TorcsEnv(vision=False, throttle=True, gear_change=False, brake=True)
 if collect_data_mode:
     agent = HumanAgent(max_steps)
 else:
-    agent = NeuralAgent(max_steps)
+    #agent = mlpAgent(max_steps)
+    agent = lstmAgent(max_steps)
 
 
 print("TORCS Experiment Start.")

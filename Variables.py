@@ -18,3 +18,13 @@ def initialize_parmeters(number_of_sensors, number_of_efectors, layer_shapes):
         #tf.summary.histogram("b" + layer_parm_index, parameters["b" + layer_parm_index])
 
     return parameters
+
+def initialize_lstm_parameters(number_of_sensors, number_of_efectors, internal_state_size):
+    parameters = {}
+
+    parameters["W_out"] = tf.get_variable("W_out", [internal_state_size, number_of_efectors],
+                                initializer=tf.contrib.layers.xavier_initializer(), dtype=tf.float32)
+    parameters["b_out"] = tf.get_variable("b_out", [1, number_of_efectors],
+                                initializer=tf.zeros_initializer(), dtype=tf.float32)
+
+    return parameters
