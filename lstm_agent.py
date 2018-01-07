@@ -89,7 +89,7 @@ class NeuralAgent(object):
 
         print([steer, acceleration, gearSignal, brake])
 
-        #acceleration, brake = 0.4, 0
+        acceleration, brake = 0.4, 0
         return [steer, acceleration, gearSignal, brake if acceleration < 0.1 else 0] # set action
 
     def gear(self, rpm):
