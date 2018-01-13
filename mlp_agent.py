@@ -1,8 +1,9 @@
 import numpy as np
 import tensorflow as tf
-import Model as mod
-import Normalization as norm
+import model as mod
+import normalization as norm
 import os
+import shared_preferences
 
 class NeuralAgent(object):
     network_dirpath = os.path.join(os.path.split(os.path.abspath(__file__))[0], "saved_network/")
@@ -13,9 +14,9 @@ class NeuralAgent(object):
         self.prev_gear = 0
         self.prevTrack = np.zeros(20)
 
-        number_of_sensors = 29  #
-        number_of_efectors = 3  #
-        layers_shapes = [27, 20, 15, 10, 10, number_of_efectors]
+        number_of_sensors = shared_preferences.number_of_sensors
+        number_of_efectors = shared_preferences.number_of_efectors
+        layers_shapes = shared_preferences.layers_shapes
 
         self.x = tf.placeholder(tf.float32, [None, number_of_sensors], name='state')
 
@@ -67,14 +68,14 @@ class NeuralAgent(object):
         action = self.sess.run(self.y, feed_dict={self.x: sensors_input})
 
         steer = action[0]
-        acceleration = action[1]
+        acc = action[1]
+        acceleration = acc if acc > 0 else 0
         gearSignal = self.gear(rpm)
-        brake = action[2]
+        brake = acc if acc < 0 else 0
 
         print([steer, acceleration, gearSignal, brake])
 
-        #acceleration, brake = 0.4, 0
-        return [steer, acceleration, gearSignal, brake if acceleration < 0.1 else 0] # set action
+        return [steer, acceleration, gearSignal, brake] # set action
 
     def gear(self, rpm):
         gear = self.prev_gear

@@ -1,11 +1,12 @@
 import numpy as np
 import tensorflow as tf
-import Normalization as norm
+import normalization as norm
 import os
-from Model import lstm_model
+from model import lstm_model
+import shared_preferences
 
 class NeuralAgent(object):
-    network_dirpath = os.path.join(os.path.split(os.path.abspath(__file__))[0], "saved_network/")
+    network_dirpath = os.path.join(os.path.split(os.path.abspath(__file__))[0], "saved_network/lstm/")
     def __init__(self, max_steps):
         self.filename = 'stateactionfile.h5'
         self.max_steps = max_steps
@@ -13,10 +14,10 @@ class NeuralAgent(object):
         self.prev_gear = 0
         self.prevTrack = np.zeros(20)
 
-        self.number_of_sensors = 29  #
-        self.number_of_efectors = 3  #
-        self.backpropagation_size = 15
-        self.internal_state_size = 20
+        self.number_of_sensors = shared_preferences.number_of_sensors
+        self.number_of_efectors = shared_preferences.number_of_efectors
+        self.backpropagation_size = shared_preferences.backpropagation_size
+        self.internal_state_size = shared_preferences.internal_state_size
 
         self.input = tf.placeholder(tf.float32, [1, self.number_of_sensors, self.backpropagation_size], name='state')
         self.sensors_input = np.zeros((self.backpropagation_size, self.number_of_sensors))
@@ -24,12 +25,15 @@ class NeuralAgent(object):
         # model
         normalized_input = norm.normalize_input(self.input)
         input_series = tf.unstack(normalized_input, axis=2)
-        self.output_series, self.cell_state, self.hidden_state = lstm_model(1, input_series, self.number_of_sensors,
-                                                                            self.internal_state_size, self.number_of_efectors)
+        self.output_series, self.current_state, self.init_state = lstm_model(1, input_series,
+                                                                             self.number_of_sensors,
+                                                                             self.internal_state_size,
+                                                                             self.number_of_efectors,
+                                                                             shared_preferences.number_of_lstm_layers)
 
         unnormalized_output = self.output_series[-1]
 
-        steering_normalized, acceleration_normalized, brake_normalized, self.y = norm.normalize_output(unnormalized_output)
+        steering_normalized, acceleration_normalized, self.y = norm.normalize_output(unnormalized_output)
 
         self.saver = tf.train.Saver()
 
@@ -37,7 +41,7 @@ class NeuralAgent(object):
 
         self.sess = tf.Session()
         self.sess.run(init)
-        self.saver.restore(self.sess, self.network_dirpath + "lstm/model.ckpt")
+        self.saver.restore(self.sess, self.network_dirpath + "model.ckpt")
 
     def act(self, ob, reward, done, step):
         #print("ACT!")
@@ -70,22 +74,21 @@ class NeuralAgent(object):
 
         print(self.sensors_input)
 
-        _current_cell_state = np.zeros((1, self.internal_state_size))
-        _current_hidden_state = np.zeros((1, self.internal_state_size))
+        _current_state = np.zeros((shared_preferences.number_of_lstm_layers, 2, 1, shared_preferences.internal_state_size))
 
-        _current_cell_state, _current_hidden_state, _output_series, action = self.sess.run(
-            [self.cell_state, self.hidden_state, self.output_series, self.y],
+        _current_state, _output_series, action = self.sess.run(
+            [self.current_state, self.output_series, self.y],
             feed_dict={
                 self.input: [self.sensors_input.transpose()],
-                self.cell_state: _current_cell_state,
-                self.hidden_state: _current_hidden_state
+                self.init_state: _current_state
             }
         )
 
         steer = action[0][0]
-        acceleration = action[0][1]
+        acc = action[0][1]
+        acceleration = acc if acc > 0 else 0
         gearSignal = self.gear(rpm)
-        brake = action[0][2]
+        brake = acc if acc < 0 else 0
 
         print([steer, acceleration, gearSignal, brake])
 
