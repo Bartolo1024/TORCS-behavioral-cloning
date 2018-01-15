@@ -69,7 +69,7 @@ class NeuralAgent(object):
         state.extend([angle, trackPos])
 
         print(self.sensors_input)
-        np.roll(self.sensors_input, self.number_of_sensors, axis=1)
+        self.sensors_input = np.roll(self.sensors_input, 1, axis=0)
         self.sensors_input[-1] = np.array(state)
 
         print(self.sensors_input)

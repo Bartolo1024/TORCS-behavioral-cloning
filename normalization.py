@@ -17,7 +17,7 @@ def normalize_input(input):
     return normalized_input
 
 def normalize_output(unnormalized_output):
-    print(tf.shape(unnormalized_output))
+
     steering, acceleration = tf.split(unnormalized_output, [1, 1], 1)
     steering_normalized = tf.tanh(steering)  # steering values e(-1, 1)
     acceleration_normalized = tf.tanh(acceleration)  # acceleration values e(-1, 1)

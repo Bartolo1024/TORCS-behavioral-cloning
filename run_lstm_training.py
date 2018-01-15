@@ -7,7 +7,7 @@ import normalization as norm
 import os
 import shared_preferences
 
-batch_size = 500
+batch_size = shared_preferences.batch_size
 time_steps = shared_preferences.backpropagation_size
 number_of_sensors = shared_preferences.number_of_sensors
 internal_state_size = shared_preferences.internal_state_size
@@ -38,7 +38,18 @@ def run(batch, lambda_param = 0.9, learning_rate = 0.005, namespace=""):
     unnormalized_output = outputs_series[-1]
     steering_normalized, acceleration_normalized, normalized_output = norm.normalize_output(unnormalized_output)
 
+    #loss for all outputs
+    loss = 0
+
     with tf.name_scope("loss"):
+        # losses = []
+        # for output in outputs_series:
+        #     steering_normalized, acceleration_normalized, normalized_output = norm.normalize_output(output)
+        #     losses.append(loss_functions.exp_log_loss_function(target_steering, steering_normalized, target_acceleration,
+        #                                                 acceleration_normalized, lambda_param))
+        # loss = tf.reduce_mean(losses)
+
+
         # loss = lf.pow_loss_function(target_steering, steering_normalized, target_brake, brake_normalized, target_acceleration, acceleration_normalized, lambda_param, 12)
         # loss = lf.log_loss_function(target_steering, steering_normalized, target_brake, brake_normalized, target_acceleration, acceleration_normalized, lambda_param)
         loss = loss_functions.exp_log_loss_function(target_steering, steering_normalized, target_acceleration,
@@ -48,41 +59,43 @@ def run(batch, lambda_param = 0.9, learning_rate = 0.005, namespace=""):
                 batch), loss)
 
     with tf.name_scope("optimizer"):
-        train_step = tf.train.AdamOptimizer(0.0005).minimize(loss)
+        train_step = tf.train.AdamOptimizer(learning_rate).minimize(loss)
 
     with tf.Session() as sess:
         merged = tf.summary.merge_all()
         sess.run(tf.global_variables_initializer())
         trainInput = train_input.TrainInput(shuffle_data=False, single_race_data_size=10000)
 
-        number_of_epochs = trainInput.max_epochs_index()
-        batches_count = trainInput.get_batches_count(batch_size, time_steps)
+        number_of_epochs = 5000
+        batches_count = trainInput.get_batches_count(batch_size)
         writer = tf.summary.FileWriter(tensorboard_dirpath + "train", sess.graph)
 
-        for iteration in range(1000):
-            for epoch_index in range(number_of_epochs):
-                x, y = trainInput.get_chain_train_data(batch_size, number_of_sensors, number_of_efectors, epoch_index)
-                _current_state = np.zeros((number_of_lstm_layers, 2, batch_size, internal_state_size))
+        for epoch_index in range(number_of_epochs):
+            x, y = trainInput.get_chain_train_data(batch_size, number_of_sensors)
+            _current_state = np.zeros((number_of_lstm_layers, 2, batch_size, internal_state_size))
 
-                for batch_index in range(batches_count - time_steps + 1):
-                    start_index = batch_index
-                    end_index = start_index + time_steps
+            for batch_index in range(batches_count - time_steps + 1):
+                start_index = batch_index
+                end_index = start_index + time_steps
 
-                    batchX = x[:, :, start_index:end_index]
-                    batchY = y[:, :, end_index]
+                batchX = x[:, :, start_index:end_index]
+                batchY = y[:, :, end_index - 1]
 
-                    _loss, _train_step, _current_state, _output_series, _normalized_output, summary = sess.run(
-                        [loss, train_step, current_state, outputs_series, normalized_output, merged],
-                        feed_dict={
-                            x_placeholder: batchX,
-                            y_placeholder: batchY,
-                            init_state: _current_state
-                        }
-                    )
+                _loss, _train_step, _current_state, _output_series, summary = sess.run(
+                    [loss, train_step, current_state, outputs_series, merged],
+                    feed_dict={
+                        x_placeholder: batchX,
+                        y_placeholder: batchY,
+                        init_state: _current_state
+                    }
+                )
 
-                    print("race" + str(epoch_index) + "loss" + str(_loss))
 
-                    writer.add_summary(summary, global_step=batch_index + epoch_index * batches_count + iteration * number_of_epochs * batches_count)
+
+                if batch_index % 50 == 0:
+                    print("race: " + str(number_of_epochs + epoch_index) + " loss " + str(_loss))
+
+                writer.add_summary(summary, global_step=batch_index + epoch_index * batches_count)
 
         # save model
         saver = tf.train.Saver()
@@ -92,4 +105,4 @@ def run(batch, lambda_param = 0.9, learning_rate = 0.005, namespace=""):
 if tf.gfile.Exists(tensorboard_dirpath):
     tf.gfile.DeleteRecursively(tensorboard_dirpath)
 
-run(batch_size, lambda_param=0.9, learning_rate=0.0005)
+run(batch_size, lambda_param=0.9, learning_rate=0.00005)
