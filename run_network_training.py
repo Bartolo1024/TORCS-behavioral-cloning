@@ -36,7 +36,7 @@ def run(batch, lambda_param = 0.9, learning_rate = 0.005, namespace=""):
     with tf.name_scope("loss"):
         #loss = lf.pow_loss_function(target_steering, steering_normalized, target_brake, brake_normalized, target_acceleration, acceleration_normalized, lambda_param, 12)
         #loss = lf.log_loss_function(target_steering, steering_normalized, target_brake, brake_normalized, target_acceleration, acceleration_normalized, lambda_param)
-        loss = lf.exp_log_loss_function(target_steering, steering_normalized, target_acceleration, acceleration_normalized, lambda_param, batch)
+        loss = lf.exp_log_loss_function(target_steering, steering_normalized, target_acceleration, acceleration_normalized, lambda_param)
         tf.summary.scalar("lr: " + "{:.7f}".format(learning_rate) + "lambda: " + "{:.7f}".format(lambda_param) + "batch: " + str(batch), loss)
 
     with tf.name_scope(namespace):

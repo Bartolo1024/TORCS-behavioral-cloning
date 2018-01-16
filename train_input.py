@@ -39,7 +39,8 @@ class TrainInput(object):
         print(self.data.shape)
 
     def get_next_batch(self, batch = 100):
-        state = self.data[self.train_data_index: self.train_data_index + batch, self.min_sensor_index: 32]
+
+        state = self.data[self.train_data_index: self.train_data_index + batch, self.min_sensor_index:]
         action = self.data[self.train_data_index: self.train_data_index + batch, 0: self.min_sensor_index]
 
         self.train_data_index += batch
@@ -52,7 +53,7 @@ class TrainInput(object):
         return state, action
 
     def get_next_test_data(self, batch = 100):
-        state = self.data[self.test_data_index: self.test_data_index + batch - 1, self.min_sensor_index: 32]
+        state = self.data[self.test_data_index: self.test_data_index + batch - 1, self.min_sensor_index:]
         action = self.data[self.test_data_index: self.test_data_index + batch - 1, 0: self.min_sensor_index]
 
         self.test_data_index += batch

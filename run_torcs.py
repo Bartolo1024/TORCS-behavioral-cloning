@@ -17,8 +17,8 @@ env = TorcsEnv(vision=False, throttle=True, gear_change=False, brake=True)
 if collect_data_mode:
     agent = HumanAgent(max_steps)
 else:
-    #agent = mlpAgent(max_steps)
-    agent = lstmAgent(max_steps)
+    agent = mlpAgent(max_steps)
+    #agent = lstmAgent(max_steps)
 
 
 print("TORCS Experiment Start.")
