@@ -20,7 +20,7 @@ def log_loss_function(target_steering, steering_normalized, target_acceleration,
     steering_diff = diff(target_steering, steering_normalized)
     acceleration_diff = diff(target_acceleration, acceleration_normalized)
 
-    # precission limit
+    # precision limit
     # steering_diff = tf.maximum(diff(target_steering, steering_normalized), 0.001)
     # acceleration_diff = tf.maximum(diff(target_acceleration, acceleration_normalized), 0.01)
     # brake_diff = tf.maximum(diff(target_brake, brake_normalized), 0.01)

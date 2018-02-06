@@ -154,6 +154,7 @@ class HumanAgent(object):
     def end(self, acceptLastEpisode = True):
         if acceptLastEpisode:
             self.file.attrs['data_count'] += 1
+            print("race" + str(self.file.attrs['data_count']) + "finished")
         else:
             self.file.__delitem__("sa" + str(self.file.attrs['data_count']))
         self.file.close()

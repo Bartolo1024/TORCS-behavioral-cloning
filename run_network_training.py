@@ -14,14 +14,15 @@ MIN_BATCH = 100
 MAX_BATCH = 10000
 DISPLAY_STEP = 10
 tensorboard_dirpath = os.path.join(os.path.split(os.path.abspath(__file__))[0], "summary/")
-network_dirpath = os.path.join(os.path.split(os.path.abspath(__file__))[0], "saved_network/")
+network_dirpath = os.path.join(os.path.split(os.path.abspath(__file__))[0], "saved_network/mlp/")
 print(tensorboard_dirpath)
 
 number_of_sensors = shared_preferences.number_of_sensors
 number_of_efectors = shared_preferences.number_of_efectors
 layers_shapes = shared_preferences.layers_shapes
 
-def run(batch, lambda_param = 0.9, learning_rate = 0.005, namespace=""):
+
+def run(batch, lambda_param=0.9, learning_rate=0.005, namespace=""):
     tf.reset_default_graph()
 
     x = tf.placeholder(tf.float32, [None, number_of_sensors], name='state')
@@ -34,10 +35,13 @@ def run(batch, lambda_param = 0.9, learning_rate = 0.005, namespace=""):
     steering_normalized, acceleration_normalized, y = normalization.normalize_output(unnormalized_output)
 
     with tf.name_scope("loss"):
-        #loss = lf.pow_loss_function(target_steering, steering_normalized, target_brake, brake_normalized, target_acceleration, acceleration_normalized, lambda_param, 12)
-        #loss = lf.log_loss_function(target_steering, steering_normalized, target_brake, brake_normalized, target_acceleration, acceleration_normalized, lambda_param)
-        loss = lf.exp_log_loss_function(target_steering, steering_normalized, target_acceleration, acceleration_normalized, lambda_param)
-        tf.summary.scalar("lr: " + "{:.7f}".format(learning_rate) + "lambda: " + "{:.7f}".format(lambda_param) + "batch: " + str(batch), loss)
+        # loss = lf.pow_loss_function(target_steering, steering_normalized, target_brake, brake_normalized, target_acceleration, acceleration_normalized, lambda_param, 12)
+        # loss = lf.log_loss_function(target_steering, steering_normalized, target_brake, brake_normalized, target_acceleration, acceleration_normalized, lambda_param)
+        loss = lf.exp_log_loss_function(target_steering, steering_normalized, target_acceleration,
+                                        acceleration_normalized, lambda_param)
+        tf.summary.scalar(
+            "lr: " + "{:.7f}".format(learning_rate) + "lambda: " + "{:.7f}".format(lambda_param) + "batch: " + str(
+                batch), loss)
 
     with tf.name_scope(namespace):
         train_step = tf.train.AdamOptimizer(learning_rate).minimize(loss)
@@ -45,7 +49,7 @@ def run(batch, lambda_param = 0.9, learning_rate = 0.005, namespace=""):
     init = tf.global_variables_initializer()
     merged = tf.summary.merge_all()
 
-    train_input = ti.TrainInput(acceleration_brake_merged = True)
+    train_input = ti.TrainInput(acceleration_brake_merged=True)
     number_of_iterations = int(train_input.get_train_data_count() / batch) * 1000
 
     with tf.Session() as sess:
@@ -57,7 +61,8 @@ def run(batch, lambda_param = 0.9, learning_rate = 0.005, namespace=""):
 
         for i in range(number_of_iterations):
             batch_x, batch_y = train_input.get_next_batch(batch=batch)
-            _, traning_loss, summary, output = sess.run([train_step, loss, merged, y], feed_dict={x: batch_x, y_: batch_y})
+            _, traning_loss, summary, output = sess.run([train_step, loss, merged, y],
+                                                        feed_dict={x: batch_x, y_: batch_y})
 
             writter.add_summary(summary, global_step=i)
 
@@ -73,7 +78,12 @@ def run(batch, lambda_param = 0.9, learning_rate = 0.005, namespace=""):
 
         # save model
         saver = tf.train.Saver()
-        save_path = saver.save(sess, network_dirpath + "model.ckpt")
+        save_path = saver.save(sess,
+                               network_dirpath +
+                               "batch_size_" + str(batch) +
+                               "_lambda_param_" + "{:.3f}".format(lambda_param) +
+                               "_learning_rate_" + "{:.5f}".format(learning_rate) +
+                               "one_race_p1_with_other" + "model.ckpt")
         print("model saved in file: %s" % save_path)
 
         writter.close()
@@ -81,6 +91,7 @@ def run(batch, lambda_param = 0.9, learning_rate = 0.005, namespace=""):
 
         sess.close()
         train_input.close()
+
 
 # for i in range(0, 10):
 #     lr_sub = random.random() * 4
@@ -95,5 +106,20 @@ def run(batch, lambda_param = 0.9, learning_rate = 0.005, namespace=""):
 if tf.gfile.Exists(tensorboard_dirpath):
     tf.gfile.DeleteRecursively(tensorboard_dirpath)
 
-run(1000, 0.9, 0.0005) #best for exponent
+# run(500, 0.9, 0.00005)
+# run(1000, 0.9, 0.00005)
+# run(2500, 0.9, 0.00005)
+# run(5000, 0.9, 0.00005)
+# run(100, 0.9, 0.0005)
+# run(200, 0.9, 0.0005)
+run(500, 0.9, 0.0005)
+# run(1000, 0.9, 0.0005)
+# run(2500, 0.9, 0.0005)
+# run(5000, 0.9, 0.0005)
+# run(500, 0.9, 0.005)
+# run(1000, 0.9, 0.005)
+# run(2500, 0.9, 0.005)
+# run(5000, 0.9, 0.005)
+
+
 

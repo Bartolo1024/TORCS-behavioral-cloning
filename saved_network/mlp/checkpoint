@@ -1,0 +1,2 @@
+model_checkpoint_path: "/home/bartolo/Projects/Torcs/TorcsPolicyTrain/saved_network/mlp/batch_size_500_lambda_param_0.900_learning_rate_0.00050one_race_p1_with_othermodel.ckpt"
+all_model_checkpoint_paths: "/home/bartolo/Projects/Torcs/TorcsPolicyTrain/saved_network/mlp/batch_size_500_lambda_param_0.900_learning_rate_0.00050one_race_p1_with_othermodel.ckpt"

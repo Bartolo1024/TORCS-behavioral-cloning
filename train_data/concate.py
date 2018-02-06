@@ -12,11 +12,14 @@ print(datasets_count)
 dataset = np.array(fileW.get('sa'))
 
 for i in range(0, datasets_count):
-    array = file.get('sa' + str(i - 1))
+    array = file.get('sa' + str(i))
     nparr = np.array(array)
+    print(dataset.shape)
+    print(nparr.shape)
     dataset = np.concatenate((dataset, nparr), axis=0)
 
 file.close()
 
+fileW.__delitem__('sa')
 fileW.create_dataset('sa', data=dataset)
 fileW.close()
