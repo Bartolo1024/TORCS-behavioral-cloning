@@ -103,13 +103,13 @@ class NeuralAgent(object):
         print("end")
 
     def restore_network(self):
-        self.saver.restore(self.sess, self.network_dirpath + "mlp/batch_size_500_lambda_param_0.900_learning_rate_0.00050one_race_p1_with_othermodel.ckpt")
+        # self.saver.restore(self.sess, self.network_dirpath + "mlp/batch_size_500_lambda_param_0.900_learning_rate_0.00050one_race_p1_with_othermodel.ckpt")
         # self.saver.restore(self.sess, self.network_dirpath + "mlp/batch_size_500_lambda_param_0.900_learning_rate_0.00005one_race_s1_model.ckpt")
         # self.saver.restore(self.sess, self.network_dirpath + "mlp/batch_size_1000_lambda_param_0.900_learning_rate_0.00005one_race_s1_model.ckpt")
         # self.saver.restore(self.sess, self.network_dirpath + "mlp/batch_size_2500_lambda_param_0.900_learning_rate_0.00005one_race_s1_model.ckpt")
         # self.saver.restore(self.sess, self.network_dirpath + "mlp/batch_size_5000_lambda_param_0.900_learning_rate_0.00005one_race_s1_model.ckpt")
         # self.saver.restore(self.sess, self.network_dirpath + "mlp/batch_size_100_lambda_param_0.900_learning_rate_0.00050one_race_s1_model.ckpt")
-        # self.saver.restore(self.sess, self.network_dirpath + "mlp/batch_size_200_lambda_param_0.900_learning_rate_0.00050one_race_s1_model.ckpt")
+        self.saver.restore(self.sess, self.network_dirpath + "mlp/batch_size_200_lambda_param_0.900_learning_rate_0.00050one_race_s1_model.ckpt")
         # self.saver.restore(self.sess, self.network_dirpath + "mlp/batch_size_500_lambda_param_0.900_learning_rate_0.00050one_race_s1_model.ckpt")
         # self.saver.restore(self.sess, self.network_dirpath + "mlp/batch_size_1000_lambda_param_0.900_learning_rate_0.00050one_race_s1_model.ckpt")
         # self.saver.restore(self.sess, self.network_dirpath + "mlp/batch_size_2500_lambda_param_0.900_learning_rate_0.00050one_race_s1_model.ckpt")

@@ -1,11 +1,13 @@
 import numpy as np
 import h5py as h5
 import keyboard
+from g27 import WheelStateDetector
 
 class HumanAgent(object):
-    def __init__(self, dim_states):
+    def __init__(self, dim_states, use_logitech_g27 = False):
         self.filename = 'train_data/stateactionfile.h5'
         self.dim_states = dim_states
+        self.use_logitech_g27 = use_logitech_g27
         self.prevAccel = 0
         self.prevSteer = 0
         self.prevBrake = 0
@@ -15,6 +17,10 @@ class HumanAgent(object):
         self.file = h5.File(self.filename, 'r+')
         dataset_name = "sa" + str(self.file.attrs['data_count'])
         self.dataset = self.file.create_dataset(dataset_name, (dim_states, 33)) #33 is dim of state action vector
+
+        if use_logitech_g27:
+            self.wheel_state_detector = WheelStateDetector()
+            self.wheel_state_detector.start()
 
     def act(self, ob, reward, done, step):
         #print("ACT!")
@@ -29,14 +35,17 @@ class HumanAgent(object):
 
         focus, speedX, speedY, speedZ, opponents, rpm, track, wheelSpinVel, angle, trackPos = ob
 
-        keys = self.getKeys()
-
         action = []
 
-        action.append(self.steer(keys[1], keys[2]))
-        action.append(self.speed(keys[3]))
-        action.append(self.gear(rpm))
-        action.append(self.brake(keys[0]))
+        if not self.use_logitech_g27:
+            keys = self.getKeys()
+            action.append(self.steer(keys[1], keys[2]))
+            action.append(self.speed(keys[3]))
+            action.append(self.gear(rpm))
+            action.append(self.brake(keys[0]))
+        else:
+            action, clutch = self.wheel_state_detector.get_action()
+            print(action)
 
         actualAS = []
 
@@ -152,6 +161,7 @@ class HumanAgent(object):
         self.dataset = self.file.create_dataset(dataset_name, (self.dim_states, 31))
 
     def end(self, acceptLastEpisode = True):
+        self.wheel_state_detector.stop()
         if acceptLastEpisode:
             self.file.attrs['data_count'] += 1
             print("race" + str(self.file.attrs['data_count']) + "finished")

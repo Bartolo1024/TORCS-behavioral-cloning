@@ -32,7 +32,7 @@ Pedal values:
 - full: 80 01
 """
 from binascii import hexlify
-
+from threading import Thread, Lock
 
 def powergenerator(start=0):
     """Generate powers of 256"""
@@ -189,7 +189,7 @@ class Message(object):
         return ' '.join(self.FMT_DEC % x for x in self.ints)
 
 
-class WheelStateDetector(object):
+class WheelStateDetector(Thread):
     base_signals_dict = {
         'wheel axis': 'wheel',
         'clutch': 'clutch',
@@ -231,33 +231,61 @@ class WheelStateDetector(object):
         'shifter button 4': 0
     }
 
-    def __init__(self)
+    def __init__(self):
+        self.is_active = True
+        Thread.__init__(self)
         self.gear = 0
         self.angle = 0
         self.acceleration = 0
         self.brake = 0
         self.clutch = 0
 
+    def run(self):
+        #self.dump_messages()
+        self.test_inf_loop()
+
     def dump_messages(self):
         with open('/dev/input/js0', 'rb') as device:
-            while True:
+            while self.is_active:
                 bs = device.read(8)
                 hex, val, bt_name = Message(bs)
                 self.decode_signal(hex, val, bt_name)
                 #print(message)
                 #message.debug
 
+    def test_inf_loop(self):
+        from g27_test.example_g27_data_preprocessing import TestInput
+        ti = TestInput()
+        while True:
+            hex, val, bt_name = ti.get_random_signal()
+            print(hex, val, bt_name)
+            self.decode_signal(hex, val, bt_name)
+
     def decode_signal(self, hex, value, bt_name):
         if bt_name == 'wheel axis':
-            set_wheel(value)
+            self.set_wheel(value)
         elif bt_name == 'clutch':
-            set_clutch(value)
+            self.set_clutch(value)
         elif bt_name == 'brake':
-            set_brake(value)
+            self.set_brake(value)
         elif bt_name == 'gas':
-            set_acceleration(value)
-        elif bt_name in gear_dict:
-            set_gear(value)
+            self.set_acceleration(value)
+        elif bt_name in self.gear_dict:
+            self.set_gear(value)
+
+    def normalize_signal(self, value, zero_pivot = False):
+        val = int(value)
+        if zero_pivot is True:
+            if val >= 32766 and val <= 65531:  # zero
+                ret = (65531 - 32766) / 32766
+            elif val < 32766:
+                ret = - val / 32766
+        else:
+            if val >= 32766 and val <= 65531:  # zero
+                ret = (65531 - 32766) / 32766 + 0.5
+            elif val < 32766:
+                ret = val / 32766
+        return ret
 
     def set_wheel(self, value):
         val = int(value)
@@ -266,9 +294,28 @@ class WheelStateDetector(object):
         elif val < 32766:
             self.angle = - val / 32766
 
-    def set_acc(self):
+    def set_acceleration(self, value):
+        self.acceleration = self.normalize_signal(value, zero_pivot=True)
 
+    def set_gear(self, gear_shifter_position, off=False):
+        if off is False:
+            self.gear = 0
+        elif gear_shifter_position in range(-1, 7):
+            self.gear = int(gear_shifter_position)
+        else:
+            print('bad gear value')
 
+    def set_brake(self, value):
+        self.brake = self.normalize_signal(value, zero_pivot=True)
+
+    def set_clutch(self, value):
+        self.clutch = self.normalize_signal(value, zero_pivot=True)
+
+    def get_action(self):
+        return [self.angle, self.acceleration, self.gear, self.brake], self.clutch
+
+    def stop(self):
+        self.is_active = False
 
 
 if __name__ == '__main__':
