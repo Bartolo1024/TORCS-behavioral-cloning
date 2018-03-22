@@ -34,6 +34,7 @@ Pedal values:
 from binascii import hexlify
 from threading import Thread, Lock
 
+
 def powergenerator(start=0):
     """Generate powers of 256"""
     i = start
@@ -46,7 +47,7 @@ class Bytewurst(object):
 
     def __init__(self, bs):
         self.raw = bs
-        self.ints = map(ord, bs)
+        self.ints = list(bytearray(bs))
 
     def __repr__(self):
         return ' '.join(map(hexlify, self.raw))
@@ -118,7 +119,7 @@ class Value(Bytewurst):
         elif self.int == 1:
             return '   on'
         else:
-            print(self.hexLE())
+            #print((self.hexLE()))
             return '%5d' % self.int
 
 
@@ -132,15 +133,14 @@ class Message(object):
         self.raw_seq = bs[0:4]
         self.raw_value = bs[4:6]
         self.raw_id = bs[6:8]
-        self.ints = map(ord, bs)
+        self.ints = list(bytearray(bs))
         self.sequence = Bytewurst(bs[0:4])
         self.value = Value(bs[4:6])
         self.button = Button(bs[6:8])
 
     def __repr__(self):
         values = (self.sequence.hexLE(), self.value, self.button.name)
-        return str(self.sequence.hexLE()), str(self.value), str(self.button.name)
-        #return '  '.join(map(str, values))
+        return '  '.join(map(str, values))
 
     @property
     def json(self):
@@ -194,17 +194,17 @@ class WheelStateDetector(Thread):
         'wheel axis': 'wheel',
         'clutch': 'clutch',
         'brake': 'brake',
-        'gas': 'acceleration'
+        'gas': 'UNKNOWN: b\'0202\''
         }
 
     gear_dict = {
-        'gear 1': 1,
-        'gear 2': 2,
-        'gear 3': 3,
-        'gear 4': 4,
-        'gear 5': 5,
-        'gear 6': 6,
-        'gear R': -1
+        'UNKNOWN: b\'010c\'': 1,
+        'UNKNOWN: b\'010d\'': 2,
+        'UNKNOWN: b\'010e\'': 3,
+        'UNKNOWN: b\'010f\'': 4,
+        'UNKNOWN: b\'010g\'': 5,
+        'UNKNOWN: b\'010h\'': 6,
+        'UNKNOWN: b\'010i\'': -1
     }
 
     paddle_dict = {
@@ -241,61 +241,85 @@ class WheelStateDetector(Thread):
         self.clutch = 0
 
     def run(self):
-        #self.dump_messages()
-        self.test_inf_loop()
+        self.dump_messages()
+        #self.test_inf_loop()
 
     def dump_messages(self):
         with open('/dev/input/js0', 'rb') as device:
             while self.is_active:
                 bs = device.read(8)
-                hex, val, bt_name = Message(bs)
-                self.decode_signal(hex, val, bt_name)
+                message = Message(bs)
+                self.decode_signal(message.sequence, message.value, message.button.name)
+                #print(str(message.sequence) + str(message.value) + str(message.button.name))
                 #print(message)
-                #message.debug
+                message.debug
 
     def test_inf_loop(self):
         from g27_test.example_g27_data_preprocessing import TestInput
         ti = TestInput()
         while True:
             hex, val, bt_name = ti.get_random_signal()
-            print(hex, val, bt_name)
+            print(hex.decode("utf-8"), val, bt_name.decode("utf-8"))
             self.decode_signal(hex, val, bt_name)
 
     def decode_signal(self, hex, value, bt_name):
-        if bt_name == 'wheel axis':
-            self.set_wheel(value)
-        elif bt_name == 'clutch':
-            self.set_clutch(value)
-        elif bt_name == 'brake':
-            self.set_brake(value)
-        elif bt_name == 'gas':
-            self.set_acceleration(value)
-        elif bt_name in self.gear_dict:
+        #print(value)
+        print('bt name is: % s and value is %s' % (bt_name, value))
+        if str(bt_name) == 'UNKNOWN: b\'0200\'':
+            self.set_wheel(str(value))
+        elif str(bt_name) == 'UNKNOWN: b\'0201\'':
+            self.set_clutch(str(value))
+        elif str(bt_name) == 'UNKNOWN: b\'0203\'':
+            self.set_brake(str(value))
+        elif str(bt_name) == 'UNKNOWN: b\'0202\'':
+            self.set_acceleration(str(value))
+        elif str(bt_name) in self.gear_dict:
             self.set_gear(value)
 
-    def normalize_signal(self, value, zero_pivot = False):
-        val = int(value)
-        if zero_pivot is True:
-            if val >= 32766 and val <= 65531:  # zero
-                ret = (65531 - 32766) / 32766
-            elif val < 32766:
-                ret = - val / 32766
-        else:
-            if val >= 32766 and val <= 65531:  # zero
-                ret = (65531 - 32766) / 32766 + 0.5
-            elif val < 32766:
-                ret = val / 32766
-        return ret
-
     def set_wheel(self, value):
-        val = int(value)
-        if val >= 32766 and val <= 65531: # zero
-            self.angle = (65531 - 32766) / 32766
-        elif val < 32766:
-            self.angle = - val / 32766
+        print(value)
+        try:
+            self.angle = self.normalize_signal(int(value), zero_pivot=True)
+            print(self.angle)
+        except ValueError:
+            self.angle = 0
+            pass
 
     def set_acceleration(self, value):
-        self.acceleration = self.normalize_signal(value, zero_pivot=True)
+        try:
+            self.acceleration = self.normalize_signal(int(value), zero_pivot=False)
+        except ValueError:
+            self.acceleration = 0
+            pass
+
+    def set_brake(self, value):
+        try:
+            self.brake = self.normalize_signal(int(value), zero_pivot=False)
+        except ValueError:
+            self.brake = 0
+            pass
+
+    def set_clutch(self, value):
+        try:
+            self.clutch = self.normalize_signal(int(value), zero_pivot=False)
+        except ValueError:
+            self.clutch = 0
+            pass
+
+    @staticmethod
+    def normalize_signal(value, zero_pivot=False):
+        val = int(value)
+        if zero_pivot is True:
+            if val in range(32769, 65535):  # zero
+                ret = (65535 - val) / 32769
+            else:
+                ret = - val / 32767
+        else:
+            if val <= 32767:
+                ret = (32767 - val) / 65531
+            else:
+                ret = 0.5 + (65531 - val) / 65531
+        return ret
 
     def set_gear(self, gear_shifter_position, off=False):
         if off is False:
@@ -304,12 +328,6 @@ class WheelStateDetector(Thread):
             self.gear = int(gear_shifter_position)
         else:
             print('bad gear value')
-
-    def set_brake(self, value):
-        self.brake = self.normalize_signal(value, zero_pivot=True)
-
-    def set_clutch(self, value):
-        self.clutch = self.normalize_signal(value, zero_pivot=True)
 
     def get_action(self):
         return [self.angle, self.acceleration, self.gear, self.brake], self.clutch

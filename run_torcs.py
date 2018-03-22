@@ -5,7 +5,7 @@ from lstm_agent import NeuralAgent as lstmAgent
 import numpy as np
 
 episode_count = 1
-max_steps = 100000
+max_steps = 1000
 reward = 0
 done = False
 collect_data_mode = True
