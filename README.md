@@ -2,7 +2,7 @@
 
 The main task of this project is training of NN agents using data colected from human race. Environment collect players input and sensors data from race.
 Using collected data we can train agent (bot). Agents based on MLP and LSTM NN were implemented. 
-HumanAgent allow collect input data from keyboard or g27 logitech controller.
+HumanAgent allows collect input data from keyboard or g27 logitech controller.
 
 ## Requirements
 
