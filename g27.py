@@ -202,9 +202,9 @@ class WheelStateDetector(Thread):
         'UNKNOWN: b\'010d\'': 2,
         'UNKNOWN: b\'010e\'': 3,
         'UNKNOWN: b\'010f\'': 4,
-        'UNKNOWN: b\'010g\'': 5,
-        'UNKNOWN: b\'010h\'': 6,
-        'UNKNOWN: b\'010i\'': -1
+        'UNKNOWN: b\'0110\'': 5,
+        'UNKNOWN: b\'0111\'': 6,
+        'UNKNOWN: b\'0116\'': -1
     }
 
     paddle_dict = {
@@ -274,7 +274,7 @@ class WheelStateDetector(Thread):
         elif str(bt_name) == 'UNKNOWN: b\'0202\'':
             self.set_acceleration(str(value))
         elif str(bt_name) in self.gear_dict:
-            self.set_gear(value)
+            self.set_gear(self.gear_dict[str(bt_name)], value)
 
     def set_wheel(self, value):
         print(value)
@@ -321,11 +321,12 @@ class WheelStateDetector(Thread):
                 ret = 0.5 + (65531 - val) / 65531
         return ret
 
-    def set_gear(self, gear_shifter_position, off=False):
-        if off is False:
+    def set_gear(self, gear_ind, turn_on):
+        if turn_on is False:
             self.gear = 0
-        elif gear_shifter_position in range(-1, 7):
-            self.gear = int(gear_shifter_position)
+        elif gear_ind in range(-1, 7):
+            print('gear %s' % gear_ind)
+            self.gear = gear_ind
         else:
             print('bad gear value')
 
