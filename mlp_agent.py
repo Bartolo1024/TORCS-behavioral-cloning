@@ -69,7 +69,7 @@ class NeuralAgent(object):
 
         steer = action[0]
         acc = action[1]
-        acceleration = acc if acc > 0 else 0
+        acceleration = acc if acc > 0 else 0.2
         gearSignal = self.gear(rpm)
         brake = acc if acc < 0 else 0
 
@@ -109,7 +109,7 @@ class NeuralAgent(object):
         # self.saver.restore(self.sess, self.network_dirpath + "mlp/batch_size_2500_lambda_param_0.900_learning_rate_0.00005one_race_s1_model.ckpt")
         # self.saver.restore(self.sess, self.network_dirpath + "mlp/batch_size_5000_lambda_param_0.900_learning_rate_0.00005one_race_s1_model.ckpt")
         # self.saver.restore(self.sess, self.network_dirpath + "mlp/batch_size_100_lambda_param_0.900_learning_rate_0.00050one_race_s1_model.ckpt")
-        self.saver.restore(self.sess, self.network_dirpath + "mlp/batch_size_200_lambda_param_0.900_learning_rate_0.00050one_race_s1_model.ckpt")
+        # self.saver.restore(self.sess, self.network_dirpath + "mlp/batch_size_200_lambda_param_0.900_learning_rate_0.00050one_race_s1_model.ckpt")
         # self.saver.restore(self.sess, self.network_dirpath + "mlp/batch_size_500_lambda_param_0.900_learning_rate_0.00050one_race_s1_model.ckpt")
         # self.saver.restore(self.sess, self.network_dirpath + "mlp/batch_size_1000_lambda_param_0.900_learning_rate_0.00050one_race_s1_model.ckpt")
         # self.saver.restore(self.sess, self.network_dirpath + "mlp/batch_size_2500_lambda_param_0.900_learning_rate_0.00050one_race_s1_model.ckpt")
@@ -136,3 +136,4 @@ class NeuralAgent(object):
         # self.saver.restore(self.sess, self.network_dirpath + "mlp/batch_size_1000_lambda_param_0.900_learning_rate_0.00500model.ckpt")
         # self.saver.restore(self.sess, self.network_dirpath + "mlp/batch_size_2500_lambda_param_0.900_learning_rate_0.00500model.ckpt")
         # self.saver.restore(self.sess, self.network_dirpath + "mlp/batch_size_5000_lambda_param_0.900_learning_rate_0.00500model.ckpt")
+        self.saver.restore(self.sess, self.network_dirpath + "mlp/batch_size_500_lambda_param_0.900_learning_rate_0.00050one_race_p1_with_othermodel.ckpt")

@@ -66,7 +66,7 @@ def run(batch, lambda_param = 0.9, learning_rate = 0.005, namespace=""):
         sess.run(tf.global_variables_initializer())
         trainInput = train_input.TrainInput(shuffle_data=False, single_race_data_size=10000)
 
-        number_of_epochs = 5000
+        number_of_epochs = 100
         batches_count = trainInput.get_batches_count(batch_size)
         writer = tf.summary.FileWriter(tensorboard_dirpath + "train", sess.graph)
 

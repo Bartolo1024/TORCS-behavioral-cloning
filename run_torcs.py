@@ -8,7 +8,7 @@ episode_count = 1
 max_steps = 10000
 reward = 0
 done = False
-collect_data_mode = True
+collect_data_mode = False
 step = 0
 
 # Generate a Torcs environment
@@ -17,8 +17,8 @@ env = TorcsEnv(vision=False, throttle=True, gear_change=True, brake=True)
 if collect_data_mode:
     agent = HumanAgent(max_steps, use_logitech_g27=True)
 else:
-    agent = mlpAgent(max_steps)
-    #agent = lstmAgent(max_steps)
+    # agent = mlpAgent(max_steps)
+    agent = lstmAgent(max_steps)
 
 
 print("TORCS Experiment Start.")
