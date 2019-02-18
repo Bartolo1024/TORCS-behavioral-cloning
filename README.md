@@ -1,8 +1,7 @@
 # Torcs Human Policy
 
-The main task of this project is training of NN agents using data colected from human race. Environment collect players input and sensors data from race.
-Using collected data we can train agent (bot). Agents based on MLP and LSTM NN were implemented. 
-HumanAgent allows collect input data from keyboard or g27 logitech controller.
+Environment collect players input and sensors data from race. HumanAgent allows collect input data from keyboard or g27 logitech controller. 
+Collected date can be used in supervised training. Trained agents are based on MLP and LSTM eural networks 
 
 ## Requirements
 
